@@ -1,0 +1,39 @@
+###Positive case - change user name with valid params
+PUT http://localhost:55002/api/v1/customer/profile
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "name": "New Name"
+}
+
+
+###Negative case - change user mail with invalid params
+PUT http://localhost:55002/api/v1/customer/profile
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "name": "NewName"
+}
+
+
+
+###Negative case - change user mail without authorization
+PUT http://localhost:55002/api/v1/customer/profile
+Content-Type: application/json
+
+{
+  "name": "New Name"
+}
+
+
+###Negative case - change username to the same one
+PUT http://localhost:55002/api/v1/customer/profile
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "name": "New Name"
+}
+
