@@ -12,6 +12,26 @@ Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
   "balance": 100
 }
 
+###Positive case - deposit to valid account, boundary value
+POST http://localhost:55002/api/v1/accounts/deposit
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "id": 1,
+  "balance": 4999.99
+}
+
+###Positive case - deposit to valid account, boundary value
+POST http://localhost:55002/api/v1/accounts/deposit
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "id": 1,
+  "balance": 0.01
+}
+
 
 ###Negative case - deposit without auth
 POST http://localhost:55002/api/v1/accounts/deposit
@@ -97,6 +117,16 @@ Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
   "balance": 100
 }
 
+###Negative case - invalid summ,boundary value
+POST http://localhost:55002/api/v1/accounts/deposit
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "id": 1,
+  "balance": 5000.01
+}
+
 
 
 
@@ -113,6 +143,28 @@ Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
   "senderAccountId": 1,
   "receiverAccountId": 3,
   "amount": 50
+}
+
+###Positive case - transfer to account of other user,boundary value
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "senderAccountId": 1,
+  "receiverAccountId": 3,
+  "amount": 0.01
+}
+
+###Positive case - transfer to account of other user,boundary value
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "senderAccountId": 1,
+  "receiverAccountId": 3,
+  "amount": 4999.99
 }
 
 ###Positive case - valid transfer to user another account
@@ -231,5 +283,16 @@ Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
   "senderAccountId": "abc",
   "receiverAccountId": 2,
   "amount": 50
+}
+
+###Negative case - invalid summ amount,boundary value
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "senderAccountId": 2,
+  "receiverAccountId": 3,
+  "amount": 5000.01
 }
 
