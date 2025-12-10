@@ -18,14 +18,11 @@ public class DepositTests {
     private static final String ERROR_INVALID_ID_DATA = "Unauthorized access to account";
     private static final String ERROR_FOR_INVALID_JSON_FORMAT_AND_MISSING_DATA_ERROR = "Internal Server Error";
     private static final String ERROR_INVALID_SUM = "Invalid account or amount";
-
-
     private static final String user1Token = "Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx";
+    private final static String URL ="http://localhost:55002/api/v1/accounts/deposit";
 
-    @BeforeAll
-    public static void setup() {
-        RestAssured.baseURI = "http://localhost:55002/api/v1/accounts/deposit";
-    }
+
+
 
     public static Stream<Arguments> dataForValidDeposit() {
         return Stream.of(
@@ -53,8 +50,9 @@ public class DepositTests {
                 .header("Authorization", "Bearer " + user1Token)
                 .body(requestBody)
                 .when()
-                .post(baseURI)
+                .post(URL)
                 .then()
+                .assertThat()
                 .statusCode(200)
                 .body("id", equalTo(accountId))
                 .body("balance", greaterThan(amount));
@@ -88,8 +86,9 @@ public class DepositTests {
                 .header("Authorization", "Bearer " + user1Token)
                 .body(requestBody)
                 .when()
-                .post(baseURI)
+                .post(URL)
                 .then()
+                .assertThat()
                 .statusCode(400)
                 .body("message", equalTo(ERROR_INVALID_SUM));
 
@@ -124,8 +123,9 @@ public class DepositTests {
                 .header("Authorization", "Bearer " + user1Token)
                 .body(requestBody)
                 .when()
-                .post(baseURI)
+                .post(URL)
                 .then()
+                .assertThat()
                 .statusCode(403)
                 .body("message", equalTo(errorMessage));
     }
@@ -148,9 +148,9 @@ public class DepositTests {
                 .header("Authorization", "Bearer " + user1Token)
                 .body(rawJson)
                 .when()
-                .post(baseURI)
+                .post(URL)
                 .then()
-
+                .assertThat()
                 .statusCode(500)
                 .body("message", equalTo(ERROR_FOR_INVALID_JSON_FORMAT_AND_MISSING_DATA_ERROR));
     }
@@ -160,18 +160,19 @@ public class DepositTests {
     public void depositTryWithoutAuth() {
 
         String requestBody = """
-            {
-              "id": 1,
-              "balance": 300
-            }
-            """;
+                {
+                  "id": 1,
+                  "balance": 300
+                }
+                """;
 
         given()
                 .contentType(ContentType.JSON)
                 .body(requestBody)
                 .when()
-                .post("/api/v1/accounts/deposit")
+                .post(URL)
                 .then()
+                .assertThat()
                 .statusCode(400)
                 .body("message", equalTo(ERROR_INVALID_ID_DATA));
     }
@@ -181,42 +182,42 @@ public class DepositTests {
                 // missing fields
                 Arguments.of(
                         """
-                        {
-                          "balance": 100
-                        }
-                        """,
-                        400,
+                                {
+                                  "balance": 100
+                                }
+                                """,
+
                         "Missing required field: id"
                 ),
                 Arguments.of(
                         """
-                        {
-                          "id": 1
-                        }
-                        """,
-                        400,
+                                {
+                                  "id": 1
+                                }
+                                """,
+
                         "Missing required field: balance"
                 ),
 
                 // null values
                 Arguments.of(
                         """
-                        {
-                          "id": null,
-                          "balance": 100
-                        }
-                        """,
-                        400,
+                                {
+                                  "id": null,
+                                  "balance": 100
+                                }
+                                """,
+
                         "Invalid account ID"
                 ),
                 Arguments.of(
                         """
-                        {
-                          "id": 1,
-                          "balance": null
-                        }
-                        """,
-                        400,
+                                {
+                                  "id": 1,
+                                  "balance": null
+                                }
+                                """,
+
                         "Amount must be greater than zero"
                 )
         );
@@ -233,11 +234,13 @@ public class DepositTests {
                 .header("Authorization", "Basic " + user1Token)
                 .body(rawJson)
                 .when()
-                .post(baseURI)
+                .post(URL)
                 .then()
+                .assertThat()
                 .statusCode(500)
                 .body("message", equalTo(ERROR_FOR_INVALID_JSON_FORMAT_AND_MISSING_DATA_ERROR));
     }
+
 
 
 }
