@@ -1,0 +1,298 @@
+###############################################
+###############   DEPOSIT   ###################
+###############################################
+
+###Positive case - deposit to valid account
+POST http://localhost:55002/api/v1/accounts/deposit
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "id": 1,
+  "balance": 100
+}
+
+###Positive case - deposit to valid account, boundary value
+POST http://localhost:55002/api/v1/accounts/deposit
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "id": 1,
+  "balance": 4999.99
+}
+
+###Positive case - deposit to valid account, boundary value
+POST http://localhost:55002/api/v1/accounts/deposit
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "id": 1,
+  "balance": 0.01
+}
+
+
+###Negative case - deposit without auth
+POST http://localhost:55002/api/v1/accounts/deposit
+Content-Type: application/json
+
+{
+  "id": 1,
+  "balance": 100
+}
+
+
+###Negative case - deposit to non-existing account
+POST http://localhost:55002/api/v1/accounts/deposit
+Content-Type: application/json
+
+{
+  "id": 999,
+  "balance": 100
+}
+
+
+###Negative case - deposit to account that belongs to another user
+POST http://localhost:55002/api/v1/accounts/deposit
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "id": 2,
+  "balance": 100
+}
+
+
+###Negative case - deposit with amount that exceeds the limit
+POST http://localhost:55002/api/v1/accounts/deposit
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "id": 1,
+  "balance": 600
+}
+
+
+### Negative case - deposit with negative amount
+POST http://localhost:55002/api/v1/accounts/deposit
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "id": 1,
+  "balance": -600
+}
+
+
+###Negative case - deposit amount = 0
+POST http://localhost:55002/api/v1/accounts/deposit
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "id": 1,
+  "balance": 0
+}
+
+
+###Negative case - missing required field "id"
+POST http://localhost:55002/api/v1/accounts/deposit
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "balance": 100
+}
+
+
+###Negative case - invalid JSON type
+POST http://localhost:55002/api/v1/accounts/deposit
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "id": "abc",
+  "balance": 100
+}
+
+###Negative case - invalid summ,boundary value
+POST http://localhost:55002/api/v1/accounts/deposit
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "id": 1,
+  "balance": 5000.01
+}
+
+
+
+
+###############################################
+###############   TRANSFER   ##################
+###############################################
+
+###Positive case - transfer to account of other user
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "senderAccountId": 1,
+  "receiverAccountId": 3,
+  "amount": 50
+}
+
+###Positive case - transfer to account of other user,boundary value
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "senderAccountId": 1,
+  "receiverAccountId": 3,
+  "amount": 0.01
+}
+
+###Positive case - transfer to account of other user,boundary value
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "senderAccountId": 1,
+  "receiverAccountId": 3,
+  "amount": 4999.99
+}
+
+###Positive case - valid transfer to user another account
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "senderAccountId": 1,
+  "receiverAccountId": 2,
+  "amount": 50
+}
+
+
+###Negative case - transfer without auth
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+
+{
+  "senderAccountId": 1,
+  "receiverAccountId": 2,
+  "amount": 50
+}
+
+
+###Negative case - sender account does not belong to user
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "senderAccountId": 2,
+  "receiverAccountId": 3,
+  "amount": 50
+}
+
+
+###Negative case - receiver account does not exist
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "senderAccountId": 1,
+  "receiverAccountId": 999,
+  "amount": 50
+}
+
+
+###Negative case - sender account does not exist
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "senderAccountId": 999,
+  "receiverAccountId": 2,
+  "amount": 50
+}
+
+
+###Negative case - insufficient funds
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "senderAccountId": 1,
+  "receiverAccountId": 2,
+  "amount": 10000
+}
+
+
+###Negative case - negative amount
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "senderAccountId": 1,
+  "receiverAccountId": 2,
+  "amount": -50
+}
+
+
+###Negative case - amount = 0
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "senderAccountId": 1,
+  "receiverAccountId": 2,
+  "amount": 0
+}
+
+
+
+
+###Negative case - missing required fields
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "senderAccountId": 1
+}
+
+
+###Negative case - invalid JSON types
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "senderAccountId": "abc",
+  "receiverAccountId": 2,
+  "amount": 50
+}
+
+###Negative case - invalid summ amount,boundary value
+POST http://localhost:55002/api/v1/accounts/transfer
+Content-Type: application/json
+Authorization: Basic Qm9nZGFuMjAwMjpCb2dkYW5pb18lMTIzNDVx
+
+{
+  "senderAccountId": 2,
+  "receiverAccountId": 3,
+  "amount": 5000.01
+}
+
