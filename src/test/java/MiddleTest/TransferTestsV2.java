@@ -12,8 +12,9 @@ import requests.TransferRequester;
 
 import java.util.stream.Stream;
 
+import static requests.TransferRequester.*;
 import static specs.RequestSpecs.unauthSpec;
-import static specs.ResponсeSpecs.requestReturnsError;
+import static specs.ResponсeSpecs.requestReturnsBadRequest;
 import static specs.ResponсeSpecs.requestReturnsOK;
 
 public class TransferTestsV2 extends BaseTest {
@@ -94,7 +95,7 @@ public class TransferTestsV2 extends BaseTest {
 
         new TransferRequester(
                 authSpecUser1,
-                requestReturnsError(400, "insufficient funds or invalid accounts")
+                requestReturnsBadRequest(String.valueOf(TransferRequester.BAD_REQUEST_STATUS), INVALID_AMOUNT_MESSAGE)
         ).post(request);
 
         double senderAfter = user1.getBalance(user1.getAccountID());
@@ -137,7 +138,7 @@ public class TransferTestsV2 extends BaseTest {
 
         new TransferRequester(
                 authSpecUser1,
-                requestReturnsError(400, "Unauthorized access to account")
+                requestReturnsBadRequest(String.valueOf(TransferRequester.BAD_REQUEST_STATUS), UNAUTHORIZED_MESSAGE)
         ).post(request);
 
         double senderAfter = user1.getBalance(user1.getAccountID());
@@ -169,7 +170,7 @@ public class TransferTestsV2 extends BaseTest {
 
         new TransferRequester(
                 unauthSpec(),
-                requestReturnsError(403, "Unauthorized access to account")
+                requestReturnsBadRequest(String.valueOf(TransferRequester.FORBIDDEN_STATUS), UNAUTHORIZED_MESSAGE)
         ).post(request);
 
         double senderAfter = user1.getBalance(user1.getAccountID());
@@ -206,7 +207,7 @@ public class TransferTestsV2 extends BaseTest {
 
         new TransferRequester(
                 unauthSpec(),
-                requestReturnsError(500, "Internal Server Error")
+                requestReturnsBadRequest(String.valueOf(TransferRequester.INTERNAL_ERROR_STATUS), INTERNAL_ERROR_MESSAGE)
         ).postRaw(rawJson);
 
         double senderAfter = user1.getBalance(user1.getAccountID());

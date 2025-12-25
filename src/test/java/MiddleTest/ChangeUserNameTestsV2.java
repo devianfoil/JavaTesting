@@ -1,7 +1,7 @@
 package MiddleTest;
 
+import Generator.RandomDataGenerator;
 import models.UpdateProfileRequest;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,9 +13,9 @@ import requests.ProfileDataRequester;
 
 import java.util.stream.Stream;
 
+import static requests.ChangeUserNameRequester.*;
 import static specs.RequestSpecs.unauthSpec;
-import static specs.ResponсeSpecs.requestReturnsError;
-import static specs.ResponсeSpecs.requestReturnsOK;
+import static specs.ResponсeSpecs.*;
 
 public class ChangeUserNameTestsV2 extends BaseTest {
 
@@ -24,7 +24,8 @@ public class ChangeUserNameTestsV2 extends BaseTest {
 
     @BeforeEach
     void setUp() {
-        profileDataRequester = user1Profile;
+        profileDataRequester = new ProfileDataRequester(authSpecUser1);
+
         changeUserNameRequester = new ChangeUserNameRequester(
                 authSpecUser1,
                 requestReturnsOK()
@@ -34,25 +35,28 @@ public class ChangeUserNameTestsV2 extends BaseTest {
     @Test
     @DisplayName("Positive: Change username with valid params")
     void changeUserNamePositive() {
-        String nameBefore = user1Profile.getAccountName();
+        // ARRANGE
+        String nameBefore = profileDataRequester.getAccountName();
+        String newName = RandomDataGenerator.randomUsername();
 
         UpdateProfileRequest request = UpdateProfileRequest.builder()
-                .name("New NAME")
+                .name(newName)
                 .build();
 
+        // ACT
         changeUserNameRequester.put(request);
 
-        String nameAfter = user1Profile.getAccountName();
+        String nameAfter = profileDataRequester.getAccountName();
 
+        // ASSERT
         softly.assertThat(nameAfter)
                 .as("Username should be updated")
-                .isEqualTo("New NAME");
+                .isEqualTo(newName);
 
         softly.assertThat(nameAfter)
                 .as("Username should differ from previous value")
                 .isNotEqualTo(nameBefore);
     }
-
 
     static Stream<Arguments> dataForInvalidUserName() {
         return Stream.of(
@@ -74,15 +78,17 @@ public class ChangeUserNameTestsV2 extends BaseTest {
 
         new ChangeUserNameRequester(
                 authSpecUser1,
-                requestReturnsError(
-                        500,
-                        "Profile name not changed due to invalid user name."
+                requestReturnsBadRequest(
+                        String.valueOf(INVALID_NAME_STATUS),
+                        ChangeUserNameRequester.INVALID_NAME_MESSAGE
                 )
         ).put(request);
 
         String nameAfter = profileDataRequester.getAccountName();
 
-        Assertions.assertEquals(nameBefore, nameAfter);
+        softly.assertThat(nameAfter)
+                .as("Username should not be changed for invalid input")
+                .isEqualTo(nameBefore);
     }
 
     @Test
@@ -91,17 +97,22 @@ public class ChangeUserNameTestsV2 extends BaseTest {
         String nameBefore = profileDataRequester.getAccountName();
 
         UpdateProfileRequest request = UpdateProfileRequest.builder()
-                .name("Another NAME")
+                .name(RandomDataGenerator.randomUsername())
                 .build();
 
         new ChangeUserNameRequester(
                 unauthSpec(),
-                requestReturnsError(400, "Unauthorized access to account")
+                requestReturnsBadRequest(
+                        String.valueOf(UNAUTHORIZED_STATUS),
+                        UNAUTHORIZED_MESSAGE
+                )
         ).put(request);
 
         String nameAfter = profileDataRequester.getAccountName();
 
-        Assertions.assertEquals(nameBefore, nameAfter);
+        softly.assertThat(nameAfter)
+                .as("Username should not be changed without authorization")
+                .isEqualTo(nameBefore);
     }
 
     @Test
@@ -117,6 +128,8 @@ public class ChangeUserNameTestsV2 extends BaseTest {
 
         String nameAfter = profileDataRequester.getAccountName();
 
-        Assertions.assertEquals(currentName, nameAfter);
+        softly.assertThat(nameAfter)
+                .as("Username should remain the same if new value equals old value")
+                .isEqualTo(currentName);
     }
 }

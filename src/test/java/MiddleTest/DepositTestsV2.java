@@ -12,9 +12,9 @@ import requests.ProfileDataRequester;
 
 import java.util.stream.Stream;
 
+import static requests.DepositRequester.*;
 import static specs.RequestSpecs.unauthSpec;
-import static specs.ResponсeSpecs.requestReturnsError;
-import static specs.ResponсeSpecs.requestReturnsOK;
+import static specs.ResponсeSpecs.*;
 
 public class DepositTestsV2 extends BaseTest {
 
@@ -85,7 +85,7 @@ public class DepositTestsV2 extends BaseTest {
 
         new DepositRequester(
                 authSpecUser1,
-                requestReturnsError(400, "Invalid account or amount")
+                requestReturnsBadRequest(String.valueOf(BAD_REQUEST_STATUS), INVALID_AMOUNT_MESSAGE)
         ).post(request);
 
         double balanceAfter = userProfile.getBalance(accountId);
@@ -119,7 +119,7 @@ public class DepositTestsV2 extends BaseTest {
 
         new DepositRequester(
                 authSpecUser1,
-                requestReturnsError(403, "Unauthorized access to account")
+                requestReturnsBadRequest(String.valueOf(FORBIDDEN_STATUS), UNAUTHORIZED_MESSAGE)
         ).post(request);
 
         double balanceAfter = userProfile.getBalance(validAccountId);
@@ -145,7 +145,7 @@ public class DepositTestsV2 extends BaseTest {
 
         new DepositRequester(
                 unauthSpec(),
-                requestReturnsError(400, "Unauthorized access to account")
+                requestReturnsBadRequest(String.valueOf(BAD_REQUEST_STATUS),UNAUTHORIZED_MESSAGE)
         ).post(request);
 
         double balanceAfter = userProfile.getBalance(accountId);
@@ -177,7 +177,7 @@ public class DepositTestsV2 extends BaseTest {
 
         new DepositRequester(
                 authSpecUser1,
-                requestReturnsError(500, "Internal Server Error")
+                requestReturnsBadRequest(String.valueOf(INTERNAL_ERROR_STATUS),INTERNAL_ERROR_MESSAGE)
         ).postRaw(rawJson);
 
         double balanceAfter = userProfile.getBalance(accountId);
