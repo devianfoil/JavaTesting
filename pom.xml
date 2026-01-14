@@ -72,6 +72,14 @@
             <scope>project</scope>
         </dependency>
 
+        <dependency>
+            <groupId>com.github.curious-odd-man</groupId>
+            <artifactId>rgxgen</artifactId>
+            <version>1.4</version>
+        </dependency>
+
+
+
     </dependencies>
 
 

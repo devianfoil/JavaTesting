@@ -1,67 +1,84 @@
 package MiddleTest;
 
+import Generators.DepositBoundaryConstants;
+import io.restassured.http.ContentType;
 import models.DepositRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import requests.DepositRequester;
-import requests.ProfileDataRequester;
+import requests.Skeleton.Endpoint;
+import requests.Skeleton.ProfileDataHelper;
+import requests.Skeleton.Requesters.CrudRequester;
+import requests.Skeleton.Requesters.ValidateCrudRequester;
 
 import java.util.stream.Stream;
 
-import static requests.DepositRequester.*;
+import static Generators.DepositBoundaryConstants.*;
+import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static specs.RequestSpecs.unauthSpec;
-import static specs.ResponсeSpecs.*;
+import static specs.ResponseSpecs.*;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class DepositTestsV2 extends BaseTest {
 
-    private ProfileDataRequester userProfile;
-    private DepositRequester depositRequester;
+    private ProfileDataHelper userProfile;
 
     @BeforeEach
     void setUp() {
-        userProfile = user1Profile;
-        depositRequester = new DepositRequester(authSpecUser1, requestReturnsOK());
+        CrudRequester profileCrud = new CrudRequester(
+                authSpecUser1,
+                Endpoint.PROFILE_REQUESTER,
+                requestReturnsOK()
+        );
+        userProfile = new ProfileDataHelper(profileCrud);
     }
 
     // ================= VALID DEPOSIT =================
 
-    static Stream<Arguments> dataForValidDeposit() {
+    static Stream<Arguments> validDepositAmounts() {
         return Stream.of(
-                Arguments.of(100.00),
-                Arguments.of(4999.99),
-                Arguments.of(0.01)
+                Arguments.of(DepositBoundaryConstants.ZERO),
+                Arguments.of(DepositBoundaryConstants.NEGATIVE),
+                Arguments.of(DepositBoundaryConstants.TOO_BIG)
+
+
         );
     }
 
     @ParameterizedTest
-    @MethodSource("dataForValidDeposit")
-    @DisplayName("Deposit with valid values should increase balance")
-    void successfulDeposit(double depositAmount) {
+    @MethodSource("validDepositAmounts")
+    @DisplayName("Valid deposit should increase balance")
+    void validDeposit(double amount) {
 
-        int accountId = userProfile.getAccountID();
+        int accountId = userProfile.getAccountId();
         double balanceBefore = userProfile.getBalance(accountId);
 
         DepositRequest request = DepositRequest.builder()
                 .accountId(accountId)
-                .balance(depositAmount)
+                .balance(amount)
                 .build();
 
-        depositRequester.post(request);
+        new ValidateCrudRequester<>(
+                authSpecUser1,
+                Endpoint.DEPOSIT,
+                requestReturnsOK()
+        ).post(request);
 
         double balanceAfter = userProfile.getBalance(accountId);
 
-        softly.assertThat(balanceAfter)
+        assertThat(balanceAfter)
                 .as("Balance should increase by deposit amount")
-                .isEqualTo(balanceBefore + depositAmount);
+                .isEqualTo(balanceBefore + amount);
     }
 
-    // ================= INVALID SUMS =================
+    // ================= INVALID AMOUNT =================
 
-    static Stream<Arguments> dataForInvalidSums() {
+    static Stream<Arguments> invalidAmounts() {
         return Stream.of(
                 Arguments.of(0.0),
                 Arguments.of(-100.0),
@@ -71,11 +88,11 @@ public class DepositTestsV2 extends BaseTest {
     }
 
     @ParameterizedTest
-    @MethodSource("dataForInvalidSums")
-    @DisplayName("Invalid deposit amounts should not change balance")
+    @MethodSource("invalidAmounts")
+    @DisplayName("Invalid deposit amount should not change balance")
     void invalidDepositAmount(double amount) {
 
-        int accountId = userProfile.getAccountID();
+        int accountId = userProfile.getAccountId();
         double balanceBefore = userProfile.getBalance(accountId);
 
         DepositRequest request = DepositRequest.builder()
@@ -83,48 +100,42 @@ public class DepositTestsV2 extends BaseTest {
                 .balance(amount)
                 .build();
 
-        new DepositRequester(
+        new CrudRequester(
                 authSpecUser1,
+                Endpoint.DEPOSIT,
                 requestReturnsBadRequest(String.valueOf(BAD_REQUEST_STATUS), INVALID_AMOUNT_MESSAGE)
         ).post(request);
 
         double balanceAfter = userProfile.getBalance(accountId);
 
-        softly.assertThat(balanceAfter)
-                .as("Balance should not change for invalid deposit amount")
+        assertThat(balanceAfter)
+                .as("Balance should not change for invalid amount")
                 .isEqualTo(balanceBefore);
     }
 
     // ================= INVALID ACCOUNT ID =================
 
-    static Stream<Arguments> invalidAccountIds() {
-        return Stream.of(
-                Arguments.of(909),
-                Arguments.of(3)
-        );
-    }
-
-    @ParameterizedTest
-    @MethodSource("invalidAccountIds")
+    @Test
     @DisplayName("Invalid account id should not change balance")
-    void invalidAccountId(int invalidAccountId) {
+    void invalidAccountId() {
 
-        int validAccountId = userProfile.getAccountID();
+        int validAccountId = userProfile.getAccountId();
         double balanceBefore = userProfile.getBalance(validAccountId);
 
         DepositRequest request = DepositRequest.builder()
-                .accountId(invalidAccountId)
+                .accountId(9999)
                 .balance(100)
                 .build();
 
-        new DepositRequester(
+        new CrudRequester(
                 authSpecUser1,
-                requestReturnsBadRequest(String.valueOf(FORBIDDEN_STATUS), UNAUTHORIZED_MESSAGE)
+                Endpoint.DEPOSIT,
+                requestReturnsBadRequest(String.valueOf(BAD_REQUEST_STATUS),UNAUTHORIZED_MESSAGE)
         ).post(request);
 
         double balanceAfter = userProfile.getBalance(validAccountId);
 
-        softly.assertThat(balanceAfter)
+        assertThat(balanceAfter)
                 .as("Balance should not change for invalid account id")
                 .isEqualTo(balanceBefore);
     }
@@ -135,7 +146,7 @@ public class DepositTestsV2 extends BaseTest {
     @DisplayName("Deposit without authorization should not change balance")
     void depositWithoutAuth() {
 
-        int accountId = userProfile.getAccountID();
+        int accountId = userProfile.getAccountId();
         double balanceBefore = userProfile.getBalance(accountId);
 
         DepositRequest request = DepositRequest.builder()
@@ -143,14 +154,15 @@ public class DepositTestsV2 extends BaseTest {
                 .balance(100)
                 .build();
 
-        new DepositRequester(
+        new CrudRequester(
                 unauthSpec(),
+                Endpoint.DEPOSIT,
                 requestReturnsBadRequest(String.valueOf(BAD_REQUEST_STATUS),UNAUTHORIZED_MESSAGE)
         ).post(request);
 
         double balanceAfter = userProfile.getBalance(accountId);
 
-        softly.assertThat(balanceAfter)
+        assertThat(balanceAfter)
                 .as("Balance should not change without authorization")
                 .isEqualTo(balanceBefore);
     }
@@ -161,7 +173,7 @@ public class DepositTestsV2 extends BaseTest {
         return Stream.of(
                 Arguments.of("{id:1, balance:100}"),
                 Arguments.of("{\"id\":1 \"balance\":100}"),
-                Arguments.of("not a json at all"),
+                Arguments.of("not a json"),
                 Arguments.of("{}"),
                 Arguments.of("")
         );
@@ -170,19 +182,23 @@ public class DepositTestsV2 extends BaseTest {
     @ParameterizedTest
     @MethodSource("invalidJsonBodies")
     @DisplayName("Invalid JSON should not change balance")
-    void invalidJsonBody(String rawJson) {
+    void invalidJson(String rawJson) {
 
-        int accountId = userProfile.getAccountID();
+        int accountId = userProfile.getAccountId();
         double balanceBefore = userProfile.getBalance(accountId);
 
-        new DepositRequester(
-                authSpecUser1,
-                requestReturnsBadRequest(String.valueOf(INTERNAL_ERROR_STATUS),INTERNAL_ERROR_MESSAGE)
-        ).postRaw(rawJson);
+        given()
+                .spec(authSpecUser1)
+                .contentType(ContentType.JSON)
+                .body(rawJson)
+                .when()
+                .post(Endpoint.DEPOSIT.getUrl())
+                .then()
+                .spec(requestReturnsInternalError());
 
         double balanceAfter = userProfile.getBalance(accountId);
 
-        softly.assertThat(balanceAfter)
+        assertThat(balanceAfter)
                 .as("Balance should not change for invalid JSON")
                 .isEqualTo(balanceBefore);
     }

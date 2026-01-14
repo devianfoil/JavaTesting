@@ -32,7 +32,7 @@ public class ChangeUserNameRequester extends PutRequest<UpdateProfileRequest> {
         return given()
                 .spec(requestSpecification)
                 .body(model)
-                .post("api/v1/customer/profile")
+                .post("api/v1//profile")
                 .then()
                 .assertThat()
                 .spec(responseSpecification);

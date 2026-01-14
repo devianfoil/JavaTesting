@@ -1,16 +1,15 @@
 package models;
 
-import Generators.GeneratingRule;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-public class UpdateProfileRequest extends BaseModel {
-
-    private String name;
+@Getter
+public class UpdateProfileResponse extends BaseModel {
+    private int id;
+    private String username;
 }
