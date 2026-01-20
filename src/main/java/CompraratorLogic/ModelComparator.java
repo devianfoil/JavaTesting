@@ -27,6 +27,18 @@ public class ModelComparator {
     }
 
     private static Object getFieldValue(Object obj, String fieldName) {
+        if (obj == null) {
+            return null;
+        }
+
+        if (fieldName.contains(".")) {
+            Object current = obj;
+            for (String part : fieldName.split("\\.")) {
+                current = getFieldValue(current, part);
+            }
+            return current;
+        }
+
         Class<?> clazz = obj.getClass();
         while (clazz != null) {
             try {

@@ -3,12 +3,10 @@ package requests.Skeleton;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import models.*;
-import requests.ProfileDataRequester;
 
 @Getter
 @AllArgsConstructor
 public enum Endpoint {
-
     DEPOSIT(
             "/accounts/deposit",
             DepositRequest.class,
@@ -31,8 +29,13 @@ public enum Endpoint {
             "/customer/profile",
             null,
             ProfileResponse.class
-            );
+    ),
 
+    LOGIN(
+            "/auth/login",
+            LoginRequest.class,
+            LoginResponse.class
+    );
 
     private final String url;
     private final Class<? extends BaseModel> requestModel;

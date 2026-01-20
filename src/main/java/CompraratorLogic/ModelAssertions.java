@@ -1,5 +1,6 @@
 package CompraratorLogic;
 
+import Configs.ModelComparisonConfigLoader;
 import org.assertj.core.api.AbstractAssert;
 
 public class ModelAssertions extends AbstractAssert<ModelAssertions, Object> {
@@ -18,7 +19,7 @@ public class ModelAssertions extends AbstractAssert<ModelAssertions, Object> {
     }
 
     public ModelAssertions match() {
-        ModelComparisonConfigLoader configLoader = new ModelComparisonConfigLoader("model-comparison.properties");
+        ModelComparisonConfigLoader configLoader = new ModelComparisonConfigLoader("model-comprarison.properties");
         ModelComparisonConfigLoader.ComparisonRule rule = configLoader.getRuleFor(request.getClass());
 
         if (rule != null) {

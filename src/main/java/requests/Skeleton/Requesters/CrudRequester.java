@@ -8,32 +8,31 @@ import requests.Skeleton.Endpoint;
 import requests.Skeleton.HttpRequest;
 import requests.Skeleton.Interface.CrudMethods;
 
+
 import static io.restassured.RestAssured.given;
 
 public class CrudRequester extends HttpRequest implements CrudMethods {
-
-
     public CrudRequester(RequestSpecification requestSpecification, Endpoint endpoint, ResponseSpecification responseSpecification) {
         super(requestSpecification, endpoint, responseSpecification);
     }
 
-
     @Override
     public ValidatableResponse post(BaseModel model) {
-        return given()
+        var body = model == null ? "" : model;
+        return  given()
                 .spec(requestSpecification)
-                .body(model)
+                .body(body)
                 .post(endpoint.getUrl())
                 .then()
                 .assertThat()
                 .spec(responseSpecification);
     }
 
+
     @Override
     public ValidatableResponse get() {
-        return given()
+        return  given()
                 .spec(requestSpecification)
-                .when()
                 .get(endpoint.getUrl())
                 .then()
                 .assertThat()
@@ -41,18 +40,24 @@ public class CrudRequester extends HttpRequest implements CrudMethods {
     }
 
     @Override
+    public Object update(long id, BaseModel model) {
+        return null;
+    }
+
+    @Override
+    public Object delete(long id) {
+        return null;
+    }
+
+    @Override
     public ValidatableResponse put(BaseModel model) {
-        return given()
+        var body = model == null ? "" : model;
+        return  given()
                 .spec(requestSpecification)
-                .body(model)
+                .body(body)
                 .put(endpoint.getUrl())
                 .then()
                 .assertThat()
                 .spec(responseSpecification);
-    }
-
-    @Override
-    public ValidatableResponse delete(long id) {
-        return null;
     }
 }

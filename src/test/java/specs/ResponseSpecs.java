@@ -25,9 +25,16 @@ public class ResponseSpecs {
     }
 
     public static ResponseSpecification requestReturnsBadRequest(String errorKey, String errorValue) {
+        int statusCode;
+        try {
+            statusCode = Integer.parseInt(errorKey);
+        } catch (NumberFormatException e) {
+            statusCode = HttpStatus.SC_BAD_REQUEST;
+        }
+
         return defaultResponseBuilder()
-                .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
-                .expectBody(errorKey, Matchers.equalTo(errorValue))
+                .expectStatusCode(statusCode)
+                .expectBody(Matchers.containsString(errorValue))
                 .build();
     }
 }

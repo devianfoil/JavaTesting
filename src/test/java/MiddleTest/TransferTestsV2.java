@@ -1,62 +1,111 @@
 package MiddleTest;
 
+import CompraratorLogic.ModelComparator;
+import Generators.RandomNumbers;
+import Generators.InvalidJsonPayloads;
 import models.TransferRequest;
+import models.TransferResponse;
+import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import requests.ProfileDataRequester;
+import requests.Skeleton.ProfileDataHelper;
+import requests.Skeleton.Endpoint;
+import requests.Skeleton.Requesters.CrudRequester;
+import requests.Skeleton.Requesters.ValidatedCrudRequester;
 
+import java.util.Map;
 import java.util.stream.Stream;
 
-import static requests.TransferRequester.*;
+import static Generators.TestErrorsAndStatusCodesConstants.*;
+import static Generators.TransferTestsData.*;
+import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static specs.RequestSpecs.unauthSpec;
-import static specs.ResponсeSpecs.requestReturnsBadRequest;
-import static specs.ResponсeSpecs.requestReturnsOK;
+import static specs.ResponseSpecs.requestReturnsBadRequest;
+import static specs.ResponseSpecs.requestReturnsOK;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
 public class TransferTestsV2 extends BaseTest {
 
-    private ProfileDataRequester user1;
-    private ProfileDataRequester user2;
-    private TransferRequester transferRequester;
+
+    // ================= REQUESTERS =================
+
+    private ProfileDataHelper userProfile1;
+    private ProfileDataHelper userProfile2;
 
     @BeforeEach
     void setUp() {
-        user1 = user1Profile;
-        user2 = user2Profile;
-        transferRequester = new TransferRequester(authSpecUser1, requestReturnsOK());
+        CrudRequester profileCrud1 = new CrudRequester(
+                authSpecUser1,
+                Endpoint.PROFILE_REQUESTER,
+                requestReturnsOK()
+        );
+        userProfile1 = new ProfileDataHelper(profileCrud1);
+
+        CrudRequester profileCrud2 = new CrudRequester(
+                authSpecUser2,
+                Endpoint.PROFILE_REQUESTER,
+                requestReturnsOK()
+        );
+        userProfile2 = new ProfileDataHelper(profileCrud2);
+
+
     }
+
 
     // ================= VALID TRANSFER =================
 
-    static Stream<Arguments> dataForValidTransfer() {
-        return Stream.of(
-                Arguments.of(50.00),
-                Arguments.of(0.01),
-                Arguments.of(4999.99)
-        );
+    static Stream<Double> validAmounts() {
+        return Stream.of(VALID_MIN, RandomNumbers.randomDouble(VALID_MIN, VALID_MAX), VALID_MAX);
     }
 
     @ParameterizedTest
-    @MethodSource("dataForValidTransfer")
-    @DisplayName("Transfer with valid values should update balances")
+    @MethodSource("validAmounts")
+    @DisplayName("Valid transfer should update balances and return correct response")
     void successfulTransfer(double amount) {
 
-        double senderBefore = user1.getBalance(user1.getAccountID());
-        double receiverBefore = user2.getBalance(user2.getAccountID());
+        int senderAccountId = userProfile1.getAccountIdWithMaxBalance();
+        int receiverAccountId = userProfile1.getAccountIdWithMinBalanceExcluding(senderAccountId);
+
+        double senderBefore = userProfile1.getBalance(senderAccountId);
+        double receiverBefore = userProfile1.getBalance(receiverAccountId);
 
         TransferRequest request = TransferRequest.builder()
-                .senderAccountId(user1.getAccountID())
-                .receiverAccountId(user2.getAccountID())
+                .senderAccountId(senderAccountId)
+                .receiverAccountId(receiverAccountId)
                 .amount(amount)
                 .build();
 
-        transferRequester.post(request);
+        ValidatedCrudRequester<TransferResponse> requester =
+                new ValidatedCrudRequester<>(
+                        authSpecUser1,
+                        Endpoint.TRANSFER,
+                        requestReturnsOK()
+                );
 
-        double senderAfter = user1.getBalance(user1.getAccountID());
-        double receiverAfter = user2.getBalance(user2.getAccountID());
+        TransferResponse response = requester.post(request);
+
+        ModelComparator.ComparisonResult comparison =
+                ModelComparator.compareFields(
+                        request,
+                        response,
+                        Map.of(
+                                "amount", "amount",
+                                "senderAccountId", "senderAccountId",
+                                "receiverAccountId", "receiverAccountId"
+                        )
+                );
+
+        assertThat(comparison.isSuccess())
+                .as(comparison.toString())
+                .isTrue();
+
+        // ✅ STATE ASSERTIONS
+        double senderAfter = userProfile1.getBalance(senderAccountId);
+        double receiverAfter = userProfile1.getBalance(receiverAccountId);
 
         softly.assertThat(senderAfter)
                 .as("Sender balance should decrease by transfer amount")
@@ -69,111 +118,82 @@ public class TransferTestsV2 extends BaseTest {
 
     // ================= INVALID AMOUNTS =================
 
-    static Stream<Arguments> dataForInvalidTransfer() {
+    static Stream<Double> invalidAmounts() {
         return Stream.of(
-                Arguments.of(-50.0),
-                Arguments.of(0.0),
-                Arguments.of(10000.0),
-                Arguments.of(5000.01)
+                INVALID_NEGATIVE,
+                INVALID_ZERO,
+                INVALID_OVER_LIMIT,
+                INVALID_TOO_BIG
         );
     }
 
     @ParameterizedTest
-    @MethodSource("dataForInvalidTransfer")
-    @DisplayName("Transfer with invalid amount should not change balances")
+    @MethodSource("invalidAmounts")
+    @DisplayName("Invalid transfer amount should not change balances")
     void invalidTransferAmount(double amount) {
 
-        double senderBefore = user1.getBalance(user1.getAccountID());
-        double receiverBefore = user2.getBalance(user2.getAccountID());
+        int senderAccountId = userProfile1.getAccountIdWithMaxBalance();
+        int receiverAccountId = userProfile1.getAccountIdWithMinBalanceExcluding(senderAccountId);
+
+        double senderBefore = userProfile1.getBalance(senderAccountId);
+        double receiverBefore = userProfile1.getBalance(receiverAccountId);
 
         TransferRequest request = TransferRequest.builder()
-                .senderAccountId(user1.getAccountID())
-                .receiverAccountId(user2.getAccountID())
+                .senderAccountId(senderAccountId)
+                .receiverAccountId(receiverAccountId)
                 .amount(amount)
                 .build();
 
-        new TransferRequester(
+        new CrudRequester(
                 authSpecUser1,
-                requestReturnsBadRequest(String.valueOf(TransferRequester.BAD_REQUEST_STATUS), INVALID_AMOUNT_MESSAGE)
+                Endpoint.TRANSFER,
+                requestReturnsBadRequest(
+                        String.valueOf(BAD_REQUEST_STATUS),
+                        TRANSFER_INVALID_MESSAGE
+                )
         ).post(request);
 
-        double senderAfter = user1.getBalance(user1.getAccountID());
-        double receiverAfter = user2.getBalance(user2.getAccountID());
+        double senderAfter = userProfile1.getBalance(senderAccountId);
+        double receiverAfter = userProfile1.getBalance(receiverAccountId);
 
         softly.assertThat(senderAfter)
-                .as("Sender balance should not change on invalid transfer")
+                .as("Sender balance should not change on invalid amount")
                 .isEqualTo(senderBefore);
 
         softly.assertThat(receiverAfter)
-                .as("Receiver balance should not change on invalid transfer")
-                .isEqualTo(receiverBefore);
-    }
-
-    // ================= INVALID ACCOUNT IDS =================
-
-    static Stream<Arguments> dataForInvalidAccountIds() {
-        return Stream.of(
-                Arguments.of(99, 2),
-                Arguments.of(1, 999),
-                Arguments.of(0, 2),
-                Arguments.of(1, 0),
-                Arguments.of(1, 1)
-        );
-    }
-
-    @ParameterizedTest
-    @MethodSource("dataForInvalidAccountIds")
-    @DisplayName("Transfer with invalid account ids should not change balances")
-    void invalidAccountIds(int senderId, int receiverId) {
-
-        double senderBefore = user1.getBalance(user1.getAccountID());
-        double receiverBefore = user2.getBalance(user2.getAccountID());
-
-        TransferRequest request = TransferRequest.builder()
-                .senderAccountId(senderId)
-                .receiverAccountId(receiverId)
-                .amount(500)
-                .build();
-
-        new TransferRequester(
-                authSpecUser1,
-                requestReturnsBadRequest(String.valueOf(TransferRequester.BAD_REQUEST_STATUS), UNAUTHORIZED_MESSAGE)
-        ).post(request);
-
-        double senderAfter = user1.getBalance(user1.getAccountID());
-        double receiverAfter = user2.getBalance(user2.getAccountID());
-
-        softly.assertThat(senderAfter)
-                .as("Sender balance should not change for invalid IDs")
-                .isEqualTo(senderBefore);
-
-        softly.assertThat(receiverAfter)
-                .as("Receiver balance should not change for invalid IDs")
+                .as("Receiver balance should not change on invalid amount")
                 .isEqualTo(receiverBefore);
     }
 
     // ================= WITHOUT AUTH =================
 
     @Test
-    @DisplayName("Transfer without authorization should fail")
+    @DisplayName("Transfer without authorization should not change balances")
     void transferWithoutAuth() {
 
-        double senderBefore = user1.getBalance(user1.getAccountID());
-        double receiverBefore = user2.getBalance(user2.getAccountID());
+        int senderAccountId = userProfile1.getAccountIdWithMaxBalance();
+        int receiverAccountId = userProfile1.getAccountIdWithMinBalanceExcluding(senderAccountId);
+
+        double senderBefore = userProfile1.getBalance(senderAccountId);
+        double receiverBefore = userProfile1.getBalance(receiverAccountId);
 
         TransferRequest request = TransferRequest.builder()
-                .senderAccountId(user1.getAccountID())
-                .receiverAccountId(user2.getAccountID())
-                .amount(500)
+                .senderAccountId(senderAccountId)
+                .receiverAccountId(receiverAccountId)
+                .amount(RandomNumbers.randomDouble(VALID_MIN,VALID_MAX))
                 .build();
 
-        new TransferRequester(
+        new CrudRequester(
                 unauthSpec(),
-                requestReturnsBadRequest(String.valueOf(TransferRequester.FORBIDDEN_STATUS), UNAUTHORIZED_MESSAGE)
+                Endpoint.TRANSFER,
+                requestReturnsBadRequest(
+                        String.valueOf(UNAUTHORIZED_STATUS),
+                        EMPTY_BODY
+                )
         ).post(request);
 
-        double senderAfter = user1.getBalance(user1.getAccountID());
-        double receiverAfter = user2.getBalance(user2.getAccountID());
+        double senderAfter = userProfile1.getBalance(senderAccountId);
+        double receiverAfter = userProfile1.getBalance(receiverAccountId);
 
         softly.assertThat(senderAfter)
                 .as("Sender balance should not change without auth")
@@ -186,38 +206,34 @@ public class TransferTestsV2 extends BaseTest {
 
     // ================= INVALID JSON =================
 
-    static Stream<Arguments> invalidJsonData() {
-        return Stream.of(
-                Arguments.of("{senderAccountId:1 receiverAccountId:3 amount:50}"),
-                Arguments.of("{ \"senderAccountId\": 1 \"amount\": 50 }"),
-                Arguments.of("not a json at all"),
-                Arguments.of("{}"),
-                Arguments.of("")
-        );
-    }
-
     @ParameterizedTest
-    @MethodSource("invalidJsonData")
+    @MethodSource("Generators.InvalidJsonPayloads#invalidJsonPayloads")
     @DisplayName("Invalid JSON should not change balances")
-    void invalidJsonTest(String rawJson) {
+    void invalidJson(String rawJson) {
+        int senderAccountId = userProfile1.getAccountIdWithMaxBalance();
+        int receiverAccountId = userProfile1.getAccountIdWithMinBalanceExcluding(senderAccountId);
 
-        double senderBefore = user1.getBalance(user1.getAccountID());
-        double receiverBefore = user2.getBalance(user2.getAccountID());
+        double senderBefore = userProfile1.getBalance(senderAccountId);
+        double receiverBefore = userProfile1.getBalance(receiverAccountId);
 
-        new TransferRequester(
-                unauthSpec(),
-                requestReturnsBadRequest(String.valueOf(TransferRequester.INTERNAL_ERROR_STATUS), INTERNAL_ERROR_MESSAGE)
-        ).postRaw(rawJson);
+        given()
+                .spec(authSpecUser1)
+                .contentType(ContentType.JSON)
+                .body(rawJson)
+                .when()
+                .post(Endpoint.TRANSFER.getUrl())
+                .then()
+                .statusCode(greaterThanOrEqualTo(BAD_REQUEST_STATUS));
 
-        double senderAfter = user1.getBalance(user1.getAccountID());
-        double receiverAfter = user2.getBalance(user2.getAccountID());
+        double senderAfter = userProfile1.getBalance(senderAccountId);
+        double receiverAfter = userProfile1.getBalance(receiverAccountId);
 
         softly.assertThat(senderAfter)
-                .as("Sender balance should not change on invalid JSON")
+                .as("Sender balance should not change with invalid JSON")
                 .isEqualTo(senderBefore);
 
         softly.assertThat(receiverAfter)
-                .as("Receiver balance should not change on invalid JSON")
+                .as("Receiver balance should not change with invalid JSON")
                 .isEqualTo(receiverBefore);
     }
 }

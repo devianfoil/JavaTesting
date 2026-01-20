@@ -3,7 +3,6 @@ package MiddleTest;
 import io.restassured.specification.RequestSpecification;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.BeforeEach;
-import requests.ProfileDataRequester;
 import requests.Skeleton.ProfileDataHelper;
 import specs.RequestSpecs;
 
@@ -22,10 +21,6 @@ public abstract class BaseTest {
     protected final String password2 = "Bogdanio_%12345q";
 
 
-
-    // profile helpers
-    protected ProfileDataHelper user1Profile;
-    protected ProfileDataHelper user2Profile;
 
     // dynamic test state
     protected int user1AccountId;

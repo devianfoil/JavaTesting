@@ -1,4 +1,4 @@
-package CompraratorLogic;
+package Configs;
 
 import java.io.IOException;
 import java.io.InputStream;
