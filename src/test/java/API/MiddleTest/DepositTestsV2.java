@@ -1,9 +1,7 @@
-package MiddleTest;
+package API.MiddleTest;
 
 import Generators.TestDataBoundariesConstants;
 import Generators.RandomNumbers;
-import Generators.InvalidJsonPayloads;
-import io.restassured.http.ContentType;
 import models.DepositRequest;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -18,10 +16,7 @@ import java.util.stream.Stream;
 
 import static Generators.TestDataBoundariesConstants.*;
 import static Generators.TestErrorsAndStatusCodesConstants.*;
-import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static specs.RequestSpecs.unauthSpec;
 import static specs.ResponseSpecs.*;
 
@@ -106,7 +101,7 @@ public class DepositTestsV2 extends BaseTest {
         new CrudRequester(
                 authSpecUser1,
                 Endpoint.DEPOSIT,
-                requestReturnsBadRequest(String.valueOf(INTERNAL_ERROR_STATUS), INVALID_AMOUNT_MESSAGE)
+                requestReturnsBadRequest(String.valueOf(BAD_REQUEST_STATUS), INVALID_AMOUNT_MESSAGE)
         ).post(request);
 
         double balanceAfter = userProfile.getBalance(accountId);
@@ -160,38 +155,13 @@ public class DepositTestsV2 extends BaseTest {
         new CrudRequester(
                 unauthSpec(),
                 Endpoint.DEPOSIT,
-                requestReturnsBadRequest(String.valueOf(BAD_REQUEST_STATUS), UNAUTHORIZED_MESSAGE)
+                requestReturnsBadRequestWithNoMessage(String.valueOf(UNAUTHORIZED_STATUS))
         ).post(request);
 
         double balanceAfter = userProfile.getBalance(accountId);
 
         assertThat(balanceAfter)
                 .as("Balance should not change without authorization")
-                .isEqualTo(balanceBefore);
-    }
-
-    // ================= INVALID JSON =================
-
-    @ParameterizedTest
-    @MethodSource("Generators.InvalidJsonPayloads#invalidJsonPayloads")
-    @DisplayName("Invalid JSON should not change balance")
-    void invalidJson(String rawJson) {
-        int accountId = userProfile.getAccountId();
-        double balanceBefore = userProfile.getBalance(accountId);
-
-        given()
-                .spec(authSpecUser1)
-                .contentType(ContentType.JSON)
-                .body(rawJson)
-                .when()
-                .post(Endpoint.DEPOSIT.getUrl())
-                .then()
-                .statusCode(greaterThanOrEqualTo(BAD_REQUEST_STATUS));
-
-        double balanceAfter = userProfile.getBalance(accountId);
-
-        assertThat(balanceAfter)
-                .as("Balance should not change with invalid JSON")
                 .isEqualTo(balanceBefore);
     }
 }

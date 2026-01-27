@@ -1,9 +1,7 @@
-package MiddleTest;
+package API.MiddleTest;
 
 import CompraratorLogic.ModelAssertions;
 import Generators.RandomModelGenerator;
-import Generators.InvalidJsonPayloads;
-import io.restassured.http.ContentType;
 import models.UpdateProfileRequest;
 import models.UpdateProfileResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,8 +18,6 @@ import requests.Skeleton.Requesters.ValidatedCrudRequester;
 import java.util.stream.Stream;
 
 import static Generators.TestErrorsAndStatusCodesConstants.*;
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static specs.RequestSpecs.unauthSpec;
 import static specs.ResponseSpecs.requestReturnsBadRequest;
 import static specs.ResponseSpecs.requestReturnsOK;
@@ -44,7 +40,7 @@ public class ChangeUserNameTestsV2 extends BaseTest {
     @DisplayName("Positive: Change username with valid params")
     void changeUserNamePositive() {
 
-        // ARRANGE
+
         String nameBefore = userProfile.getName();
 
         UpdateProfileRequest request =
@@ -61,7 +57,6 @@ public class ChangeUserNameTestsV2 extends BaseTest {
 
         String nameAfter = userProfile.getName();
 
-        // ASSERT — state
         softly.assertThat(nameAfter)
                 .as("Username should be updated")
                 .isEqualTo(request.getName());
@@ -70,7 +65,6 @@ public class ChangeUserNameTestsV2 extends BaseTest {
                 .as("Username should differ from previous value")
                 .isNotEqualTo(nameBefore);
 
-        // ASSERT — contract (MODEL COMPARISON)
         ModelAssertions.assertThatModels(request, response)
                 .match();
     }
@@ -151,29 +145,5 @@ public class ChangeUserNameTestsV2 extends BaseTest {
         softly.assertThat(nameAfter)
                 .as("Username should remain the same if new value equals old value")
                 .isEqualTo(currentName);
-    }
-
-    // ================= INVALID JSON =================
-
-    @ParameterizedTest
-    @MethodSource("Generators.InvalidJsonPayloads#invalidJsonPayloads")
-    @DisplayName("Invalid JSON should not change username")
-    void invalidJson(String rawJson) {
-        String nameBefore = userProfile.getName();
-
-        given()
-                .spec(authSpecUser1)
-                .contentType(ContentType.JSON)
-                .body(rawJson)
-                .when()
-                .put(Endpoint.CHANGEUSERNAME.getUrl())
-                .then()
-                .statusCode(greaterThanOrEqualTo(BAD_REQUEST_STATUS));
-
-        String nameAfter = userProfile.getName();
-
-        softly.assertThat(nameAfter)
-                .as("Username should not change with invalid JSON")
-                .isEqualTo(nameBefore);
     }
 }

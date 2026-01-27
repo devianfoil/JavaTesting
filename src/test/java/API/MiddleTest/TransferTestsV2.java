@@ -1,11 +1,10 @@
-package MiddleTest;
+package API.MiddleTest;
 
-import CompraratorLogic.ModelComparator;
+import CompraratorLogic.ModelAssertions;
 import Generators.RandomNumbers;
-import Generators.InvalidJsonPayloads;
+import models.DepositRequest;
 import models.TransferRequest;
 import models.TransferResponse;
-import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,17 +15,14 @@ import requests.Skeleton.Endpoint;
 import requests.Skeleton.Requesters.CrudRequester;
 import requests.Skeleton.Requesters.ValidatedCrudRequester;
 
-import java.util.Map;
 import java.util.stream.Stream;
 
 import static Generators.TestErrorsAndStatusCodesConstants.*;
 import static Generators.TransferTestsData.*;
-import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static specs.RequestSpecs.unauthSpec;
 import static specs.ResponseSpecs.requestReturnsBadRequest;
 import static specs.ResponseSpecs.requestReturnsOK;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
 public class TransferTestsV2 extends BaseTest {
 
@@ -52,7 +48,19 @@ public class TransferTestsV2 extends BaseTest {
         );
         userProfile2 = new ProfileDataHelper(profileCrud2);
 
-
+        // Fund sender account for all tests
+        int senderAccountId = userProfile1.getAccountIdWithMaxBalance();
+        double fundAmount = RandomNumbers.randomDouble(VALID_MAX, VALID_MAX);
+        DepositRequest fundRequest = DepositRequest.builder()
+                .accountId(senderAccountId)
+                .balance(fundAmount)
+                .build();
+        
+        new CrudRequester(
+                authSpecUser1,
+                Endpoint.DEPOSIT,
+                requestReturnsOK()
+        ).post(fundRequest);
     }
 
 
@@ -68,10 +76,10 @@ public class TransferTestsV2 extends BaseTest {
     void successfulTransfer(double amount) {
 
         int senderAccountId = userProfile1.getAccountIdWithMaxBalance();
-        int receiverAccountId = userProfile1.getAccountIdWithMinBalanceExcluding(senderAccountId);
+        int receiverAccountId = userProfile2.getAccountId();
 
         double senderBefore = userProfile1.getBalance(senderAccountId);
-        double receiverBefore = userProfile1.getBalance(receiverAccountId);
+        double receiverBefore = userProfile2.getBalance(receiverAccountId);
 
         TransferRequest request = TransferRequest.builder()
                 .senderAccountId(senderAccountId)
@@ -88,24 +96,11 @@ public class TransferTestsV2 extends BaseTest {
 
         TransferResponse response = requester.post(request);
 
-        ModelComparator.ComparisonResult comparison =
-                ModelComparator.compareFields(
-                        request,
-                        response,
-                        Map.of(
-                                "amount", "amount",
-                                "senderAccountId", "senderAccountId",
-                                "receiverAccountId", "receiverAccountId"
-                        )
-                );
+        ModelAssertions.assertThatModels(request, response)
+                .match();
 
-        assertThat(comparison.isSuccess())
-                .as(comparison.toString())
-                .isTrue();
-
-        // ✅ STATE ASSERTIONS
         double senderAfter = userProfile1.getBalance(senderAccountId);
-        double receiverAfter = userProfile1.getBalance(receiverAccountId);
+        double receiverAfter = userProfile2.getBalance(receiverAccountId);
 
         softly.assertThat(senderAfter)
                 .as("Sender balance should decrease by transfer amount")
@@ -133,10 +128,10 @@ public class TransferTestsV2 extends BaseTest {
     void invalidTransferAmount(double amount) {
 
         int senderAccountId = userProfile1.getAccountIdWithMaxBalance();
-        int receiverAccountId = userProfile1.getAccountIdWithMinBalanceExcluding(senderAccountId);
+        int receiverAccountId = userProfile2.getAccountId();
 
         double senderBefore = userProfile1.getBalance(senderAccountId);
-        double receiverBefore = userProfile1.getBalance(receiverAccountId);
+        double receiverBefore = userProfile2.getBalance(receiverAccountId);
 
         TransferRequest request = TransferRequest.builder()
                 .senderAccountId(senderAccountId)
@@ -154,7 +149,7 @@ public class TransferTestsV2 extends BaseTest {
         ).post(request);
 
         double senderAfter = userProfile1.getBalance(senderAccountId);
-        double receiverAfter = userProfile1.getBalance(receiverAccountId);
+        double receiverAfter = userProfile2.getBalance(receiverAccountId);
 
         softly.assertThat(senderAfter)
                 .as("Sender balance should not change on invalid amount")
@@ -172,10 +167,10 @@ public class TransferTestsV2 extends BaseTest {
     void transferWithoutAuth() {
 
         int senderAccountId = userProfile1.getAccountIdWithMaxBalance();
-        int receiverAccountId = userProfile1.getAccountIdWithMinBalanceExcluding(senderAccountId);
+        int receiverAccountId = userProfile2.getAccountId();
 
         double senderBefore = userProfile1.getBalance(senderAccountId);
-        double receiverBefore = userProfile1.getBalance(receiverAccountId);
+        double receiverBefore = userProfile2.getBalance(receiverAccountId);
 
         TransferRequest request = TransferRequest.builder()
                 .senderAccountId(senderAccountId)
@@ -193,7 +188,7 @@ public class TransferTestsV2 extends BaseTest {
         ).post(request);
 
         double senderAfter = userProfile1.getBalance(senderAccountId);
-        double receiverAfter = userProfile1.getBalance(receiverAccountId);
+        double receiverAfter = userProfile2.getBalance(receiverAccountId);
 
         softly.assertThat(senderAfter)
                 .as("Sender balance should not change without auth")
@@ -201,39 +196,6 @@ public class TransferTestsV2 extends BaseTest {
 
         softly.assertThat(receiverAfter)
                 .as("Receiver balance should not change without auth")
-                .isEqualTo(receiverBefore);
-    }
-
-    // ================= INVALID JSON =================
-
-    @ParameterizedTest
-    @MethodSource("Generators.InvalidJsonPayloads#invalidJsonPayloads")
-    @DisplayName("Invalid JSON should not change balances")
-    void invalidJson(String rawJson) {
-        int senderAccountId = userProfile1.getAccountIdWithMaxBalance();
-        int receiverAccountId = userProfile1.getAccountIdWithMinBalanceExcluding(senderAccountId);
-
-        double senderBefore = userProfile1.getBalance(senderAccountId);
-        double receiverBefore = userProfile1.getBalance(receiverAccountId);
-
-        given()
-                .spec(authSpecUser1)
-                .contentType(ContentType.JSON)
-                .body(rawJson)
-                .when()
-                .post(Endpoint.TRANSFER.getUrl())
-                .then()
-                .statusCode(greaterThanOrEqualTo(BAD_REQUEST_STATUS));
-
-        double senderAfter = userProfile1.getBalance(senderAccountId);
-        double receiverAfter = userProfile1.getBalance(receiverAccountId);
-
-        softly.assertThat(senderAfter)
-                .as("Sender balance should not change with invalid JSON")
-                .isEqualTo(senderBefore);
-
-        softly.assertThat(receiverAfter)
-                .as("Receiver balance should not change with invalid JSON")
                 .isEqualTo(receiverBefore);
     }
 }

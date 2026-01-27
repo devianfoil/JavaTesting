@@ -9,12 +9,11 @@ import models.LoginRequest;
 import requests.Skeleton.Endpoint;
 import requests.Skeleton.Requesters.CrudRequester;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
+import static specs.ResponseSpecs.AUTHORIZATION_HEADER;
 
 public class RequestSpecs {
-    private static Map<String, String> authHeaders = new HashMap<>();
 
     private RequestSpecs(){}
 
@@ -33,24 +32,16 @@ public class RequestSpecs {
 
 
     public static RequestSpecification authUser(String username, String password) {
-        String userAuthHeader;
-
-        if (!authHeaders.containsKey(username)) {
-            userAuthHeader = new CrudRequester(
-                    RequestSpecs.unauthSpec(),
-                    Endpoint.LOGIN,
-                    ResponseSpecs.requestReturnsOK())
-                    .post(LoginRequest.builder().username(username).password(password).build())
-                    .extract()
-                    .header("Authorization");
-
-            authHeaders.put(username, userAuthHeader);
-        } else {
-            userAuthHeader = authHeaders.get(username);
-        }
+        String userAuthHeader = new CrudRequester(
+                RequestSpecs.unauthSpec(),
+                Endpoint.LOGIN,
+                ResponseSpecs.requestReturnsOK())
+                .post(LoginRequest.builder().username(username).password(password).build())
+                .extract()
+                .header(AUTHORIZATION_HEADER);
 
         return defaultRequestBuilder()
-                .addHeader("Authorization", userAuthHeader)
+                .addHeader(AUTHORIZATION_HEADER, userAuthHeader)
                 .build();
     }
     }

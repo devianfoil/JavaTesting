@@ -1,4 +1,4 @@
-package Iteration2;
+package API.MiddleTest.Iteration1_Middle;
 
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.DisplayName;

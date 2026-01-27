@@ -60,4 +60,26 @@ public class CrudRequester extends HttpRequest implements CrudMethods {
                 .assertThat()
                 .spec(responseSpecification);
     }
+
+    public ValidatableResponse postRaw(String rawJson) {
+        return given()
+                .spec(requestSpecification)
+                .contentType(io.restassured.http.ContentType.JSON)
+                .body(rawJson)
+                .post(endpoint.getUrl())
+                .then()
+                .assertThat()
+                .spec(responseSpecification);
+    }
+
+    public ValidatableResponse putRaw(String rawJson) {
+        return given()
+                .spec(requestSpecification)
+                .contentType(io.restassured.http.ContentType.JSON)
+                .body(rawJson)
+                .put(endpoint.getUrl())
+                .then()
+                .assertThat()
+                .spec(responseSpecification);
+    }
 }
