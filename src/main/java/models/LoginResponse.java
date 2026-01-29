@@ -1,6 +1,5 @@
 package models;
 
-import Generators.GeneratingRule;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class UpdateProfileRequest extends BaseModel {
-    @GeneratingRule(regex = "^[a-zA-Z][a-zA-Z0-9_]{4,19}$")
-    private String name;
+public class LoginResponse extends BaseModel {
+    private String username;
+    private String role;
 }

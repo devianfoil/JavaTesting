@@ -1,5 +1,6 @@
 package models;
 
+import Generators.GeneratingRule;
 import com.sun.net.httpserver.Request;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,6 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class TransferRequest extends BaseModel {
+
     int senderAccountId;
     int receiverAccountId;
     double amount;
